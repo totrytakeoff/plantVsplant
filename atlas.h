@@ -35,8 +35,9 @@ public:
 	void clear() {
 		img_list.clear();
 	}
-	int get_size(){
-		return (int)(img_list.size());
+
+	int get_size(){///
+		return (img_list.size());
 	}
 
 	IMAGE* get_image(int idx) {

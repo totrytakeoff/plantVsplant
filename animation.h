@@ -2,6 +2,7 @@
 #include"atlas.h"
 #include"tools.h"
 #include<functional>
+#include"camera.h"
 
 
 class Animation {
@@ -62,8 +63,8 @@ public:
 		}
 	}
 
-	void on_draw(int x,int y) {
-		putimage_Alpha(x, y, atlas->get_image(idx_frame));
+	void on_draw(const Camera camera, int x,int y)const {
+		putimage_Alpha(camera,x, y, atlas->get_image(idx_frame));
 	}
 
 	void set_callback(std::function<void()> callback) {
@@ -71,6 +72,7 @@ public:
 		this->callback = callback;
 
 	}
+
 
 
 private:
@@ -85,3 +87,4 @@ private:
 
 
 };
+

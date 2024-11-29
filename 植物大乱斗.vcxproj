@@ -43,7 +43,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -133,13 +133,23 @@
   <ItemGroup>
     <ClInclude Include="animation.h" />
     <ClInclude Include="atlas.h" />
+    <ClInclude Include="bullet.h" />
+    <ClInclude Include="bullet_pea.h" />
+    <ClInclude Include="bullet_sun.h" />
+    <ClInclude Include="bullet_sunEx.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="Init_res.h" />
+    <ClInclude Include="peashooter.h" />
+    <ClInclude Include="platform.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="player_id.h" />
     <ClInclude Include="select_scene.h" />
     <ClInclude Include="game_scene.h" />
     <ClInclude Include="menu_scene.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="scene_manager.h" />
+    <ClInclude Include="status_bar.h" />
+    <ClInclude Include="sunflower.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="tools.h" />
     <ClInclude Include="vector2.h" />

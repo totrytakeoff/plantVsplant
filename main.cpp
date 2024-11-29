@@ -15,11 +15,14 @@
 #include"animation.h"
 
 #include"Init_res.h"///载入图像音乐等资源
+#include"platform.h"
+
+#include"player.h"
+#include"bullet.h"
 
 
 
-
-
+bool is_debug = false;
  
 Scene* menu_scene = nullptr;//继承了Scene，故可以直接给Scene*的变量类型
 Scene* game_scene = nullptr;//继承了Scene，故可以直接给Scene*的变量类型
@@ -27,9 +30,14 @@ Scene* select_scene = nullptr;//继承了Scene，故可以直接给Scene*的变量类型
 
 Camera main_camera;
 SceneManager scene_manager;
+std::vector<Platform> platform_list;
+std::vector<Bullet*>bullet_list;
 
+Player* player_1 = nullptr;
+Player* player_2 = nullptr;
 
-
+IMAGE* img_player_1_avater = nullptr;
+IMAGE* img_player_2_avater = nullptr;
 
 
 
@@ -40,6 +48,8 @@ int main() {
 	ExMessage msg;
 	const int FPS = 60;
 	initgraph(1280,720);
+	settextstyle(28, 0, _T("IPix"));
+	setbkmode(TRANSPARENT);
 
 	BeginBatchDraw();
 
@@ -68,6 +78,8 @@ int main() {
 		cleardevice();
 		
 		scene_manager.on_draw(main_camera);
+
+
 
 		FlushBatchDraw();
 

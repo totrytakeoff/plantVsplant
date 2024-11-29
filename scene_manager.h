@@ -57,6 +57,8 @@ public:
 		current_scene->on_input(msg);
 	}
 
+
+
 private:
 	Scene* current_scene=nullptr;
 
