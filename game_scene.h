@@ -15,6 +15,13 @@ extern IMAGE img_sky;
 extern IMAGE img_hills;
 extern IMAGE img_platform_large;
 extern IMAGE img_platform_small;
+extern IMAGE img_1P_winner;
+extern IMAGE img_2P_winner;
+extern IMAGE img_winner_bar;
+
+extern IMAGE* img_player_1_avater;
+extern IMAGE* img_player_2_avater;
+
 extern Camera main_camera;
 
 extern std::vector<Platform> platform_list;
@@ -22,8 +29,12 @@ extern std::vector<Platform> platform_list;
 extern Player* player_1;
 extern Player* player_2;
 
-extern IMAGE* img_player_1_avater;
-extern IMAGE* img_player_2_avater;
+extern IMAGE img_1P_winnner;
+//1P获胜文本图片
+extern IMAGE img_2P_winner;
+// 2P获胜文本图片
+extern IMAGE img_winner_bar;
+//获胜玩家文本背景图片
 
 
 class GameScene:public Scene{
@@ -35,7 +46,39 @@ public:
 	}
 	void on_enter() {///处理进入时的初始化逻辑
 		
-		std::cout << " 进入游戏内场景 " << std::endl;
+		is_game_over = false;
+		is_slide_out_started = false;
+
+		pos_img_winner_bar.x = (- img_winner_bar.getwidth());
+		pos_img_winner_bar.y = (getheight() - img_winner_bar.getheight()) / 2;
+		pos_x_img_winner_bar_dst = (getwidth() - img_winner_bar.getwidth()) / 2;
+
+		pos_img_winner_text.x = pos_img_winner_bar.x;
+		pos_img_winner_text.y = (getheight()  - img_1P_winner.getheight()) / 2;
+		pos_x_img_winner_text_dst = (getwidth() - img_1P_winner.getwidth()) / 2;
+
+
+		timer_winner_slide_in.restart();
+		timer_winner_slide_in.set_wait_time(2500);
+		timer_winner_slide_in.set_one_shot(true);
+		timer_winner_slide_in.set_callback([&]()
+		{
+		    is_slide_out_started = true;
+		});
+		
+		timer_winner_slide_out.restart();
+		timer_winner_slide_out.set_wait_time(1000);
+		timer_winner_slide_out.set_one_shot(true);
+		timer_winner_slide_out.set_callback([&]()
+		{
+		    scene_manager.switch_scene(SceneManager::SceneType::Menu);
+		});
+
+
+
+
+		mciSendString(_T("play bgm_game repeat 0"),NULL,0,NULL);
+
 
 		status_bar_1P.set_avater(img_player_1_avater);
 		status_bar_2P.set_avater(img_player_2_avater);
@@ -118,13 +161,57 @@ public:
 			//std::cout <<"check_can_remove: "<< bullet->check_can_remove() << std::endl;
 		}
 
+
+
+		const Vector2& pos_player_1 = player_1->get_pos();
+		const Vector2& pos_player_2 = player_2->get_pos();
+		if (pos_player_1.y >= getheight()) {
+			player_1->set_hp(0);
+		}
+		if (pos_player_2.y >= getheight()) {
+			player_2->set_hp(0);
+		}
+
+		if (player_1->get_hp() <= 0 || player_2->get_hp() <= 0) {
+			
+
+			if (!is_game_over) {
+				mciSendString(_T("stop bgm_game"), NULL, 0, NULL);
+				mciSendString(_T("play ui_win from 0"), NULL, 0, NULL);
+			}
+
+			is_game_over = true;
+
+		}
+
+
 		
 		status_bar_1P.set_hp(player_1->get_hp());
 		status_bar_1P.set_mp(player_1->get_mp());
 
 		status_bar_2P.set_hp(player_2->get_hp());
 		status_bar_2P.set_mp(player_2->get_mp());
+		
+		if (is_game_over) {
+			 pos_img_winner_bar.x+=speed_winner_bar*delta;
+			 pos_img_winner_text.x+=speed_winner_text*delta;
+			
+			 if (!is_slide_out_started) {
+				timer_winner_slide_in.on_update(delta);
+				if (pos_img_winner_bar.x >= pos_x_img_winner_bar_dst) {
+					pos_img_winner_bar.x = pos_x_img_winner_bar_dst;
+				}
+				if (pos_img_winner_text.x >= pos_x_img_winner_text_dst) {
+					pos_img_winner_text.x = pos_x_img_winner_text_dst;
+				}
+			 
+			 }
+			 else {
+				timer_winner_slide_out.on_update(delta);
+			 }
 
+
+		}
 
 	}
 	 
@@ -144,6 +231,11 @@ public:
 
 		for (Bullet* bullet : bullet_list) {
 			bullet->on_draw(camera);
+		}
+
+		if (is_game_over) {
+			putimage_Alpha(pos_img_winner_bar.x, pos_img_winner_bar.y, &img_winner_bar);
+			putimage_Alpha(pos_img_winner_text.x, pos_img_winner_text.y, player_1->get_hp() >0 ? &img_1P_winner:&img_2P_winner);
 		}
 
 		status_bar_1P.on_draw();
@@ -177,6 +269,13 @@ public:
 	}
 	void on_exit(){
 		///处理场景退出时的卸载逻辑
+		delete player_1;player_1 = nullptr;
+		delete player_2;player_2 = nullptr;
+
+		is_debug = false;
+
+		bullet_list.clear();
+		main_camera.reset();
 	}
 	
 private:
@@ -185,6 +284,19 @@ private:
 	
 	StatusBar status_bar_1P;///玩家1的状态条
 	StatusBar status_bar_2P;///玩家2的状态条
+
+	bool is_game_over=false;
+
+	POINT pos_img_winner_bar = { 0 };
+	POINT pos_img_winner_text = { 0 };
+	int pos_x_img_winner_bar_dst = 0;
+	int pos_x_img_winner_text_dst = 0;
+	Timer timer_winner_slide_in;//滑入
+	Timer timer_winner_slide_out;//滑出
+	bool is_slide_out_started = false;//是否开始滑出结算动效
+
+	const float speed_winner_bar = 3.0f;
+	const float speed_winner_text = 1.5f;
 
 
 };

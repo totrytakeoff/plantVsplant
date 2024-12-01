@@ -273,6 +273,8 @@ public:
 		player_2->setID(PlayerID::P2);
 
 
+		mciSendString(_T("stop bgm_menu"), NULL, 0, NULL);///Õ£÷π≤•∑≈≤Àµ•±≥æ∞“Ù¿÷
+
 
 	}
 

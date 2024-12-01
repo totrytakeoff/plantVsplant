@@ -21,15 +21,18 @@ extern std::vector<Platform> platform_list;
 
 extern std::vector< Bullet* >bullet_list;
 
+extern IMAGE img_1P_cursor;
+extern IMAGE img_2P_cursor;
+
 class Player {
 public:
-	Player(){
+	Player() {
 		current_animation = &animation_idle_right;
 
 		timer_attack_cd.set_wait_time(attack_cd);
 		timer_attack_cd.set_one_shot(true);
 		timer_attack_cd.set_callback(
-			[&](){
+			[&]() {
 				can_attack = true;
 			}
 		);
@@ -41,13 +44,13 @@ public:
 				is_invulnerable = false;
 			}
 		);
-		
+
 		timer_invulnerable_blink.set_wait_time(75);
 		//timer_invulnerable_blink.set_one_shot(true);///!!!注意！！！全白帧计时器需要loop不然不能实现闪烁，而是一直白的 
 		timer_invulnerable_blink.set_callback
 		(
-			[&]() 
-			{	
+			[&]()
+			{
 				//cout << "sketch_change_before: " << is_showing_sketch_frame << std::endl;
 				is_showing_sketch_frame = !is_showing_sketch_frame;
 				//cout << "sketch_change_after: " << is_showing_sketch_frame << std::endl;
@@ -55,7 +58,7 @@ public:
 			}
 		);
 
-		
+
 		timer_run_effect_generation.set_wait_time(75);
 		timer_run_effect_generation.set_callback(
 			[&]() {
@@ -63,7 +66,7 @@ public:
 
 				Vector2 particle_pos;
 				IMAGE* frame = atlas_run_effect.get_image(0);
-				particle_pos.x = position.x + (size.x - frame->getwidth() )/2;
+				particle_pos.x = position.x + (size.x - frame->getwidth()) / 2;
 				particle_pos.y = position.y + (size.y - frame->getwidth());
 				particle_list.emplace_back(particle_pos, &atlas_run_effect, 45);
 				std::cout << "runeffectdebug\n";
@@ -71,14 +74,14 @@ public:
 		);
 		timer_die_effect_generation.set_wait_time(35);
 		timer_die_effect_generation.set_callback(
-			[&] (){
+			[&]() {
 
 				Vector2 particle_pos;
 				IMAGE* frame = atlas_run_effect.get_image(0);
-				particle_pos.x = position.x + (size.x - frame->getwidth() )/2;
+				particle_pos.x = position.x + (size.x - frame->getwidth()) / 2;
 				particle_pos.y = position.y + (size.y - frame->getwidth());
 				particle_list.emplace_back(particle_pos, &atlas_run_effect, 150);///emplace_back 直接传参构造一个particle对象添加到particle_list中
-				
+
 
 			}
 		);
@@ -95,11 +98,20 @@ public:
 			}
 		);
 
+		timer_cursor_visible.set_wait_time(2500);
+		timer_cursor_visible.set_one_shot(true);
 
-
+		timer_cursor_visible.set_callback(
+			[&]() {
+				is_cursor_visible = false;
+			}
+		);
 
 
 	}
+
+
+
 	~Player(){}
 
 	virtual void on_update(int delta) {//处理数据
@@ -125,6 +137,11 @@ public:
 			current_animation = is_facing_right ? &animation_attack_ex_right : &animation_attack_ex_left;
 		}
 
+		if (hp <= 0) {
+			current_animation =is_facing_right ? &animation_die_right : &animation_die_left;
+		}
+
+
 		current_animation->on_update(delta);
 		animation_jump_effect.on_update(delta);
 		animation_land_effect.on_update(delta);
@@ -134,6 +151,12 @@ public:
 		timer_invulnerable.on_update(delta);
 		timer_invulnerable_blink.on_update(delta);
 		timer_run_effect_generation.on_update(delta);
+
+
+
+		timer_cursor_visible.on_update(delta);
+
+	
 
 		if (hp < 0) {
 			timer_die_effect_generation.on_update(delta);
@@ -184,6 +207,21 @@ public:
 
 		}else
 		current_animation->on_draw(camera, (int)position.x, (int)position.y);//正常序列帧
+
+
+		if (is_cursor_visible) {
+			switch (player_id) {
+				case PlayerID::P1:
+					putimage_Alpha(camera, (int)position.x+(size.x-img_1P_cursor.getwidth()/2), (int)position.y-img_1P_cursor.getheight(), &img_1P_cursor);
+					break;
+				case PlayerID::P2:
+					putimage_Alpha(camera, (int)position.x+(size.x-img_2P_cursor.getwidth()/2), (int)position.y-img_2P_cursor.getheight(), &img_2P_cursor);
+					break;
+
+			}
+
+
+		}
 
 		if(is_debug)
 		{
@@ -355,9 +393,6 @@ public:
 		
 	}
 
-
-
-
 	virtual void on_land() {
 
 	
@@ -371,11 +406,6 @@ public:
 
 	}
 
-
-
-
-
-
 	virtual void on_attack(){
 		
 
@@ -385,9 +415,11 @@ public:
 		
 
 	}
+
 	Vector2 get_size() {
 		return size;
 	}
+
 	Vector2 get_pos() {
 		return position;
 	}
@@ -405,6 +437,12 @@ public:
 		float last_v_y=velocity.y;///
 		velocity.y += gravity * delta;///
 		position += velocity * (float)delta;///
+
+		if (hp <= 0) {
+			return;
+		}////因为受击在下，故HP为0时会先执行击飞，再在下次update中执行此句避免死亡后的碰撞
+
+
 		if (velocity.y > 0) {
 			for (const Platform& platform : platform_list) {
 				const Platform::CollisionShape& shape = platform.shape;
@@ -442,7 +480,16 @@ public:
 					bullet->on_collide();
 					bullet->set_valid(false);
 					hp -= (bullet->get_damage());
-					std::cout << "hurt" << std::endl;
+					last_hurt_direction = bullet->get_position()-position;
+					if (hp <= 0) {
+						//timer_cursor_visible.restart();///角色死亡后显示光标
+
+						velocity.x=last_hurt_direction.x<0?0.35f:-0.35f;//角色死亡后击飞
+						velocity.y = -1.0f;
+
+					}
+
+
 				}
 			}
 		}
@@ -471,7 +518,9 @@ public:
 		return mp;
 	}
 
-
+	void set_hp(int hp) {
+		this->hp = hp;
+	}
 protected:
 	int mp = 0;
 	int hp = 100;///生命值
@@ -495,6 +544,9 @@ protected:
 
 	Animation animation_jump_effect;
 	Animation animation_land_effect;
+	Animation animation_die_left;
+	Animation animation_die_right;
+	
 	bool is_jump_effect_visible = false;
 	bool is_land_effect_visible = false;
 	Vector2 pos_jump_effect;
@@ -530,6 +582,9 @@ protected:
 
 	IMAGE img_sketch;
 
+	bool is_cursor_visible = true;
+	Timer timer_cursor_visible;
+	Vector2 last_hurt_direction;
 
 
 	 
