@@ -7,8 +7,15 @@
 #include"platform.h"
 #include"bullet.h"
 #include"tools.h"
+#include"particle.h"
+
 
 extern bool is_debug;
+
+
+extern Atlas atlas_run_effect;
+extern Atlas atlas_jump_effect;
+extern Atlas atlas_land_effect;
 
 extern std::vector<Platform> platform_list;
 
@@ -49,6 +56,47 @@ public:
 		);
 
 		
+		timer_run_effect_generation.set_wait_time(75);
+		timer_run_effect_generation.set_callback(
+			[&]() {
+
+
+				Vector2 particle_pos;
+				IMAGE* frame = atlas_run_effect.get_image(0);
+				particle_pos.x = position.x + (size.x - frame->getwidth() )/2;
+				particle_pos.y = position.y + (size.y - frame->getwidth());
+				particle_list.emplace_back(particle_pos, &atlas_run_effect, 45);
+				std::cout << "runeffectdebug\n";
+			}
+		);
+		timer_die_effect_generation.set_wait_time(35);
+		timer_die_effect_generation.set_callback(
+			[&] (){
+
+				Vector2 particle_pos;
+				IMAGE* frame = atlas_run_effect.get_image(0);
+				particle_pos.x = position.x + (size.x - frame->getwidth() )/2;
+				particle_pos.y = position.y + (size.y - frame->getwidth());
+				particle_list.emplace_back(particle_pos, &atlas_run_effect, 150);///emplace_back 直接传参构造一个particle对象添加到particle_list中
+				
+
+			}
+		);
+
+
+		animation_jump_effect.set_all(&atlas_jump_effect, 25, false,
+			[&]() {
+				is_jump_effect_visible = false;
+			}
+		);
+		animation_land_effect.set_all(&atlas_land_effect, 50, false,
+			[&]() {
+				is_land_effect_visible = false;
+			}
+		);
+
+
+
 
 
 	}
@@ -67,26 +115,47 @@ public:
 		else {
 
 			current_animation = is_facing_right ? &animation_idle_right : &animation_idle_left;
+			timer_run_effect_generation.pause();///静止时跑动计时器暂停
+
 
 		} 
-
+ 
 		if (is_attacking_ex)
 		{
 			current_animation = is_facing_right ? &animation_attack_ex_right : &animation_attack_ex_left;
 		}
 
 		current_animation->on_update(delta);
+		animation_jump_effect.on_update(delta);
+		animation_land_effect.on_update(delta);
+
 
 		timer_attack_cd.on_update(delta);
-
-
 		timer_invulnerable.on_update(delta);
 		timer_invulnerable_blink.on_update(delta);
+		timer_run_effect_generation.on_update(delta);
+
+		if (hp < 0) {
+			timer_die_effect_generation.on_update(delta);
+		}
+
+		particle_list.erase(
+			std::remove_if(particle_list.begin(), particle_list.end(),
+			[](const Particle& particle) {
+				return !particle.check_valid();///去你丫的写了两个！
+			}),
+			particle_list.end()
+			);
+
+		for (Particle& particle : particle_list) {
+			particle.on_update(delta);
+		}
+
 
 
 		if (is_showing_sketch_frame) {
 			sketch_image(current_animation->get_frame(),&img_sketch);
-		}
+		}///显示无敌帧
 
 		move_and_collide(delta);
 
@@ -97,6 +166,19 @@ public:
 	}
 
 	virtual void on_draw(const Camera& camera) {//绘制
+		if (is_jump_effect_visible) {
+			animation_jump_effect.on_draw(camera, pos_jump_effect.x, pos_jump_effect.y);
+		}
+		if (is_land_effect_visible) {
+			animation_land_effect.on_draw(camera, pos_land_effect.x, pos_land_effect.y);
+		}
+
+
+		for (const Particle& particle : particle_list) {
+			particle.on_draw(camera);
+		}///	粒子特效需要在角色背后，故画在前面
+
+
 		if (hp > 0 && is_invulnerable && is_showing_sketch_frame) {
 			putimage_Alpha(camera, (int)position.x, (int)position.y,&img_sketch);///纯白剪影帧
 
@@ -253,6 +335,8 @@ public:
 			return;
 		}
 		position.x += distance;
+		timer_run_effect_generation.resume();///跑动时跑动粒子特效定时器重置开始
+
 	}	
 
 	virtual void on_jump() {
@@ -261,7 +345,36 @@ public:
 			return;
 
 		velocity.y += jump_v;
+
+		is_jump_effect_visible = true;
+		animation_jump_effect.reset();
+
+		IMAGE* effect_frame = animation_jump_effect.get_frame();
+		pos_jump_effect.x = position.x + (size.x -effect_frame->getwidth()) / 2;
+		pos_jump_effect.y = position.y + (size.y - effect_frame->getheight())  ;
+		
 	}
+
+
+
+
+	virtual void on_land() {
+
+	
+
+		is_land_effect_visible = true;
+		animation_land_effect.reset();
+
+		IMAGE* effect_frame = animation_land_effect.get_frame();
+		pos_land_effect.x = position.x + (size.x - effect_frame->getwidth()) / 2;
+		pos_land_effect.y = position.y + (size.y - effect_frame->getheight());
+
+	}
+
+
+
+
+
 
 	virtual void on_attack(){
 		
@@ -289,7 +402,7 @@ public:
 	}
 
 	void move_and_collide(int delta){///// !!! 
-		
+		float last_v_y=velocity.y;///
 		velocity.y += gravity * delta;///
 		position += velocity * (float)delta;///
 		if (velocity.y > 0) {
@@ -304,6 +417,11 @@ public:
 						position.y = shape.y - size.y;
 						velocity.y = 0;
 						
+						if (last_v_y != 0) {
+							on_land();
+						}
+
+
  						break;
 					}
 
@@ -375,6 +493,14 @@ protected:
 	Animation animation_attack_ex_left;
 	Animation animation_attack_ex_right;
 
+	Animation animation_jump_effect;
+	Animation animation_land_effect;
+	bool is_jump_effect_visible = false;
+	bool is_land_effect_visible = false;
+	Vector2 pos_jump_effect;
+	Vector2 pos_land_effect;
+
+
 
 	Animation* current_animation = nullptr;
 
@@ -397,7 +523,15 @@ protected:
 	Timer timer_invulnerable;//无敌状态计时器
 	Timer timer_invulnerable_blink;///无敌闪烁定时器
 
+	Timer timer_run_effect_generation;
+	Timer timer_die_effect_generation;
+
+	std::vector<Particle> particle_list;
+
 	IMAGE img_sketch;
+
+
+
 	 
 };
 

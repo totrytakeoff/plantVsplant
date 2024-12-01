@@ -73,7 +73,13 @@ public:
 
 	}
 
+	void set_all(Atlas* new_atlas, int ms, bool flag, std::function<void()> callback) {
+		this->set_atlas(new_atlas);
+		this->set_interval(ms);
+		this->set_loop(flag);
+		this->set_callback(callback);
 
+	}
 
 private:
 

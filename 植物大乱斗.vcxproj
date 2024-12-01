@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="particle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
