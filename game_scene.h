@@ -156,9 +156,7 @@ public:
 		for (Bullet* bullet : bullet_list) {
 			bullet->on_update(delta);
 
-			//std::cout << bullet_list.size() << std::endl;
-			//std::cout <<"valid: "<< bullet->get_valid() << std::endl;
-			//std::cout <<"check_can_remove: "<< bullet->check_can_remove() << std::endl;
+
 		}
 
 

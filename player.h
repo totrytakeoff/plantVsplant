@@ -51,9 +51,7 @@ public:
 		(
 			[&]()
 			{
-				//cout << "sketch_change_before: " << is_showing_sketch_frame << std::endl;
 				is_showing_sketch_frame = !is_showing_sketch_frame;
-				//cout << "sketch_change_after: " << is_showing_sketch_frame << std::endl;
 
 			}
 		);
@@ -69,7 +67,6 @@ public:
 				particle_pos.x = position.x + (size.x - frame->getwidth()) / 2;
 				particle_pos.y = position.y + (size.y - frame->getwidth());
 				particle_list.emplace_back(particle_pos, &atlas_run_effect, 45);
-				std::cout << "runeffectdebug\n";
 			}
 		);
 		timer_die_effect_generation.set_wait_time(35);
@@ -81,7 +78,6 @@ public:
 				particle_pos.x = position.x + (size.x - frame->getwidth()) / 2;
 				particle_pos.y = position.y + (size.y - frame->getwidth());
 				particle_list.emplace_back(particle_pos, &atlas_run_effect, 150);///emplace_back 直接传参构造一个particle对象添加到particle_list中
-
 
 			}
 		);
@@ -139,6 +135,7 @@ public:
 
 		if (hp <= 0) {
 			current_animation =is_facing_right ? &animation_die_right : &animation_die_left;
+			timer_die_effect_generation.on_update(delta);
 		}
 
 
@@ -158,8 +155,8 @@ public:
 
 	
 
-		if (hp < 0) {
-			timer_die_effect_generation.on_update(delta);
+		if (hp <= 0) {
+			
 		}
 
 		particle_list.erase(
@@ -182,9 +179,6 @@ public:
 
 		move_and_collide(delta);
 
-
-		//std::cout <<"invu:"<< is_invulnerable << std::endl;
-		//std::cout << "_sketch:" << is_showing_sketch_frame << std::endl;
 
 	}
 
@@ -369,7 +363,7 @@ public:
 	}
 
 	virtual void on_run(float distance) {
-		if (is_attacking_ex) {
+		if (is_attacking_ex||hp<=0) {
 			return;
 		}
 		position.x += distance;

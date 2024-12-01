@@ -40,7 +40,7 @@ public:
 
 	void on_collide() {
 		Bullet::on_collide();
-		std::cout << " 	Bullet::on_collide();" << std::endl;
+
 
 		main_camera.shake(20, 350);
 		mciSendString(_T("play sun_explode_ex from 0"), NULL, 0, NULL);
@@ -68,7 +68,7 @@ public:
 			animation_idle.on_update(delta);
 		}
 		if (check_if_exceeds_screen()) {
-			//std::cout << " check... " << std::endl;
+
 			can_remove = true;
 		}
 
