@@ -1,4 +1,5 @@
 # 植物大乱斗
+本项目为跟随B站up voidmatrix 进行学习实现
 
 this is a project to learning cpp and make a small game using easyx
 
